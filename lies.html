@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Store Layout</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+        }
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section {
+            display: none;
+            margin-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #218838;
+        }
+        #output {
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Medical Store Layout</h1>
+
+    <label for="store-item">Select an Item:</label>
+    <select id="store-item" onchange="showSection()">
+        <option value="">-- Select an option --</option>
+        <option value="table">Table</option>
+        <option value="rack">Rack</option>
+        <option value="drawer">Drawer</option>
+        <option value="refrigerator">Refrigerator</option>
+        <option value="others">Others</option>
+    </select>
+
+    <!-- Table Section -->
+    <div id="table-section" class="section">
+        <label for="table-name">Table Name:</label>
+        <input type="text" id="table-name" placeholder="Enter table name">
+
+        <label for="table-floors">Number of Floors:</label>
+        <input type="number" id="table-floors" placeholder="Enter number of floors">
+
+        <label for="table-sections">Number of Sections per Floor:</label>
+        <input type="number" id="table-sections" placeholder="Enter number of sections per floor">
+    </div>
+
+    <!-- Rack Section -->
+    <div id="rack-section" class="section">
+        <label for="rack-name">Rack Name:</label>
+        <input type="text" id="rack-name" placeholder="Enter rack name">
+
+        <label for="rack-rows">Number of Rows:</label>
+        <input type="number" id="rack-rows" placeholder="Enter number of rows">
+
+        <label for="rack-columns">Number of Columns:</label>
+        <input type="number" id="rack-columns" placeholder="Enter number of columns">
+    </div>
+
+    <!-- Drawer Section -->
+    <div id="drawer-section" class="section">
+        <label for="drawer-name">Drawer Name:</label>
+        <input type="text" id="drawer-name" placeholder="Enter drawer name">
+    </div>
+
+    <!-- Refrigerator Section -->
+    <div id="refrigerator-section" class="section">
+        <label for="refrigerator-name">Refrigerator Name:</label>
+        <input type="text" id="refrigerator-name" placeholder="Enter refrigerator name">
+
+        <label for="refrigerator-floors">Number of Floors:</label>
+        <input type="number" id="refrigerator-floors" placeholder="Enter number of floors">
+    </div>
+
+    <!-- Others Section -->
+    <div id="others-section" class="section">
+        <label for="other-item">Specify Item:</label>
+        <input type="text" id="other-item" placeholder="Enter item name">
+    </div>
+
+    <button class="button" onclick="submitForm()">Submit</button>
+
+    <div id="output"></div>
+</div>
+
+<script>
+    function showSection() {
+        // Hide all sections
+        document.getElementById('table-section').style.display = 'none';
+        document.getElementById('rack-section').style.display = 'none';
+        document.getElementById('drawer-section').style.display = 'none';
+        document.getElementById('refrigerator-section').style.display = 'none';
+        document.getElementById('others-section').style.display = 'none';
+
+        // Get the selected value
+        var selectedItem = document.getElementById('store-item').value;
+
+        // Show the corresponding section
+        if (selectedItem === 'table') {
+            document.getElementById('table-section').style.display = 'block';
+        } else if (selectedItem === 'rack') {
+            document.getElementById('rack-section').style.display = 'block';
+        } else if (selectedItem === 'drawer') {
+            document.getElementById('drawer-section').style.display = 'block';
+        } else if (selectedItem === 'refrigerator') {
+            document.getElementById('refrigerator-section').style.display = 'block';
+        } else if (selectedItem === 'others') {
+            document.getElementById('others-section').style.display = 'block';
+        }
+    }
+
+    function submitForm() {
+        var selectedItem = document.getElementById('store-item').value;
+        var itemDetails = "";
+
+        if (selectedItem === 'table') {
+            var tableName = document.getElementById('table-name').value;
+            var tableFloors = document.getElementById('table-floors').value;
+            var tableSections = document.getElementById('table-sections').value;
+            itemDetails = "Table Name: " + tableName + ", Floors: " + tableFloors + ", Sections/Floor: " + tableSections + "<br><br>";
+
+            // Generate default names for rack cells
+            itemDetails +=  tableName + ":" + "<br>";
+            for (var r = 1; r <= tableFloors; r++) {
+                for (var c = 1; c <= tableSections; c++) {
+                    itemDetails += tableName + " F" + r + "S" + c + "<br>";
+                }
+            }
+        } else if (selectedItem === 'rack') {
+            var rackName = document.getElementById('rack-name').value;
+            var rackRows = document.getElementById('rack-rows').value;
+            var rackColumns = document.getElementById('rack-columns').value;
+            itemDetails = "Rack Name: " + rackName + ", Rows: " + rackRows + ", Columns: " + rackColumns;
+
+            // Generate default names for rack cells
+            itemDetails += "<br><br>" + rackName + ":<br>";
+            for (var r = 1; r <= rackRows; r++) {
+                for (var c = 1; c <= rackColumns; c++) {
+                    itemDetails += rackName + " R" + r + "C" + c + "<br>";
+                }
+            }
+        } else if (selectedItem === 'drawer') {
+            var drawerName = document.getElementById('drawer-name').value;
+            itemDetails = "Drawer Name: " + drawerName;
+        } else if (selectedItem === 'refrigerator') {
+            var refrigeratorName = document.getElementById('refrigerator-name').value;
+            var refrigeratorFloors = document.getElementById('refrigerator-floors').value;
+            itemDetails = "Refrigerator Name: " + refrigeratorName + ", Floors: " + refrigeratorFloors + "<br>";
+
+            // Generate default names for rack cells
+            itemDetails +=  refrigeratorName + ":" + "<br>";
+            for (var r = 1; r <= refrigeratorFloors; r++) {
+                    itemDetails += refrigeratorName + " F" + r +"<br>";
+            }
+
+
+        } else if (selectedItem === 'others') {
+            var otherItem = document.getElementById('other-item').value;
+            itemDetails = "Other Item: " + otherItem;
+        }
+
+        // Display entered details in output section
+        document.getElementById('output').innerHTML = "<h3>Entered Details:</h3><p>" + itemDetails + "</p>";
+
+        // Reset to default values
+        resetForm();
+    }
+
+    function resetForm() {
+    document.getElementById('store-item').selectedIndex = 0; // Reset the dropdown
+    document.getElementById('table-name').value = '';
+    document.getElementById('table-floors').value = '';
+    document.getElementById('table-sections').value = '';
+    document.getElementById('rack-name').value = '';
+    document.getElementById('rack-rows').value = '';
+    document.getElementById('rack-columns').value = '';
+    document.getElementById('drawer-name').value = '';
+    document.getElementById('refrigerator-name').value = '';
+    document.getElementById('refrigerator-floors').value = '';
+    document.getElementById('other-item').value = '';
+    // Hide all sections again
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+}
+
+
+
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/7.14.1-0/firebase.js"></script>
+
+
+<script src="cose.js"></script>
+</body>
+</html>

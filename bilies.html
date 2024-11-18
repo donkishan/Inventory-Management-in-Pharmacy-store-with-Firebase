@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Medical Store Billing</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .header, .footer { text-align: center; margin-bottom: 20px; }
+        .header { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .footer { border-top: 2px solid #333; padding-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { text-align: right; font-size: 18px; }
+        .button { display: block; margin: 20px 0; padding: 10px; background-color: #28a745; color: white; text-align: center; border-radius: 5px; text-decoration: none; }
+        .button:hover { background-color: #218838; }
+        .input-field { width: 90px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Interactive Medical Store Invoice</h1>
+        <p>Address: 123 Medical St, Healthy City</p>
+        <p>Contact: +123-456-7890</p>
+    </div>
+
+    <table id="billing-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Medicine Name</th>
+                <th>Quantity</th>
+                <th>Price per Unit</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="bill-items">
+            <!-- Items will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <div class="total">
+        <h2>Total Amount: ₹<span id="total-amount">0.00</span></h2>
+    </div>
+
+    <button class="button" id="add-item">Add New Item</button>
+    <button class="button" id="generate-bill">Generate Bill</button>
+    <button class="button" id="print-invoice" onclick="window.print()">Print Invoice</button>
+
+    <div class="footer">
+        <p>Thank you for shopping with us!</p>
+        <p><strong>Medical Store</strong> - Stay healthy, stay safe.</p>
+    </div>
+</div>
+
+<script>
+    let totalAmount = 0;
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC2n82yjAljSCTjTAy3p8IsaYvx-bo2ePI",
+        authDomain: "medical-a70b0.firebaseapp.com",
+        databaseURL: "https://medical-a70b0-default-rtdb.firebaseio.com",
+        projectId: "medical-a70b0",
+        storageBucket: "medical-a70b0.appspot.com",
+        messagingSenderId: "405220474341",
+        appId: "1:405220474341:web:f1e792db059f08c76ac30c",
+        measurementId: "G-JSH167JC8J"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Adding a new item
+    document.getElementById('add-item').addEventListener('click', function () {
+        try {
+            addItem();
+        } catch (error) {
+            console.error("Error adding item: ", error);
+        }
+    });
+
+    document.getElementById('generate-bill').addEventListener('click', function () {
+        try {
+            generateBill();
+        } catch (error) {
+            console.error("Error generating bill: ", error);
+        }
+    });
+
+    function addItem() {
+        const table = document.getElementById('bill-items');
+        const row = document.createElement('tr');
+
+        // Create cells for item input, quantity, price, total, and actions
+        row.innerHTML = `
+            <td>${table.rows.length + 1}</td>
+            <td><input type="text" class="input-field medicine-name" placeholder="Medicine Name"></td>
+            <td><input type="number" class="input-field quantity" value="1" min="1" oninput="updateTotal(this)"></td>
+            <td><input type="number" class="input-field price" value="0.00" min="0" step="0.01" oninput="updateTotal(this)"></td>
+            <td>₹<span class="item-total">0.00</span></td>
+            <td><button onclick="removeItem(this)">Remove</button></td>
+        `;
+        table.appendChild(row);
+        updateGrandTotal();
+    }
+
+    // Update the total for each item
+    function updateTotal(element) {
+        const row = element.closest('tr');
+        const quantity = parseFloat(row.querySelector('.quantity').value);
+        const price = parseFloat(row.querySelector('.price').value);
+
+        if (isNaN(quantity) || isNaN(price) || quantity <= 0 || price < 0) {
+            alert("Please enter valid positive numbers for quantity and price.");
+            return;
+        }
+
+        const total = (quantity * price).toFixed(2);
+        row.querySelector('.item-total').innerText = total;
+        updateGrandTotal();
+    }
+
+    // Update the total for the entire bill
+    function updateGrandTotal() {
+        const totals = document.querySelectorAll('.item-total');
+        totalAmount = 0;
+        totals.forEach(item => {
+            totalAmount += parseFloat(item.innerText);
+        });
+        document.getElementById('total-amount').innerText = totalAmount.toFixed(2);
+    }
+
+    // Remove an item from the bill
+    function removeItem(button) {
+        const row = button.closest('tr');
+        row.remove();
+        updateGrandTotal();
+    }
+
+    // Generate the bill and update Firebase
+    async function generateBill() {
+        let insufficientStock = false;
+        const items = document.querySelectorAll('#bill-items tr');
+
+        for (const item of items) {
+            const medicineName = item.querySelector('.medicine-name').value.trim();
+            const quantity = parseInt(item.querySelector('.quantity').value);
+
+            if (!medicineName) {
+                alert("Medicine name cannot be empty.");
+                return;
+            }
+
+            const hasStock = await checkStock(medicineName, quantity);
+            if (!hasStock) {
+                insufficientStock = true;
+                break;
+            }
+        }
+
+        if (insufficientStock) {
+            alert("One or more medicines do not have sufficient stock. Please check the quantities.");
+            return;
+        }
+
+        let billContent = `
+            <div style="text-align: center; font-family: Arial, sans-serif;">
+                <h1>Bill</h1>
+                <p>Address: 123 Medical St, Healthy City</p>
+                <p>Contact: +123-456-7890</p>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Medicine Name</th>
+                            <th>Quantity</th>
+                            <th>Price per Unit</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        for (const item of items) {
+            const medicineName = item.querySelector('.medicine-name').value.trim();
+            const quantity = item.querySelector('.quantity').value;
+            const price = item.querySelector('.price').value;
+            const total = item.querySelector('.item-total').innerText;
+
+            // Update quantity in Firebase
+            await updateFirebaseQuantity(medicineName, quantity);
+
+            billContent += `
+                <tr>
+                    <td>${item.rowIndex}</td>
+                    <td>${medicineName}</td>
+                    <td>${quantity}</td>
+                    <td>₹${parseFloat(price).toFixed(2)}</td>
+                    <td>₹${total}</td>
+                </tr>
+            `;
+        }
+
+        billContent += `
+                    </tbody>
+                </table>
+                <h2>Total Amount: ₹${totalAmount.toFixed(2)}</h2>
+            </div>
+        `;
+
+        const newWindow = window.open('', '', 'width=600,height=400');
+        newWindow.document.write(billContent);
+        newWindow.document.close();
+        newWindow.focus();
+        newWindow.print();
+    }
+
+    // Function to check if sufficient stock is available
+    async function checkStock(medicineName, requestedQuantity) {
+        const formattedMedicineName = medicineName.trim(); // Remove any leading/trailing spaces
+        const ref = database.ref('medical_store/inventory/' + formattedMedicineName); // Updated path
+
+        console.log("Checking stock for:", formattedMedicineName); // Debugging output
+
+        try {
+            const snapshot = await ref.once('value');
+            console.log("Snapshot data:", snapshot.val()); // Debugging output
+            if (snapshot.exists()) {
+                const currentData = snapshot.val();
+                console.log("Current data for", formattedMedicineName, ":", currentData); // Debugging output
+                return currentData.quantity >= requestedQuantity;
+            } else {
+                alert("Medicine not found in database: " + medicineName);
+                return false;
+            }
+        } catch (error) {
+            console.error("Error fetching from Firebase:", error);
+            return false;
+        }
+    }
+
+    // Function to update the quantity of a medicine in Firebase
+    async function updateFirebaseQuantity(medicineName, quantity) {
+        const ref = database.ref('medical_store/inventory/' + medicineName.trim());
+
+        try {
+            const snapshot = await ref.once('value');
+            if (snapshot.exists()) {
+                const currentData = snapshot.val();
+                const newQuantity = currentData.quantity - quantity; // Subtract the sold quantity
+
+                if (newQuantity < 0) {
+                    alert("Cannot reduce quantity below zero for " + medicineName);
+                    return;
+                }
+
+                await ref.update({ quantity: newQuantity }); // Update the quantity in Firebase
+                console.log("Updated quantity for", medicineName, "to", newQuantity);
+            } else {
+                alert("Medicine not found in database: " + medicineName);
+            }
+        } catch (error) {
+            console.error("Error updating Firebase:", error);
+        }
+    }
+
+</script>
+
+</body>
+</html>

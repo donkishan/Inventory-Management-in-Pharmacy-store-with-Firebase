@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medication Search</title>
+    <!-- Load Firebase App and Database SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .button:hover {
+            background-color: #218838;
+        }
+        .result-section {
+            margin-top: 20px;
+        }
+        .result-section p {
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Search Medication</h1>
+        <form id="searchForm">
+            <label for="medName">Enter Medication Name:</label>
+            <input type="text" id="medName" name="medName" placeholder="e.g., Paracetamol" required>
+            <button type="submit" class="button">Search</button>
+        </form>
+
+        <!-- Result Section -->
+        <div class="result-section" id="resultSection" style="display: none;">
+            <p><strong>Medication Name:</strong> <span id="medicationName"></span></p>
+            <p><strong>Placement/Location:</strong> <span id="placement"></span></p>
+            <p><strong>Quantity:</strong> <span id="quantity"></span></p>
+            <p><strong>Expiry Date:</strong> <span id="expiryDate"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2n82yjAljSCTjTAy3p8IsaYvx-bo2ePI",
+            authDomain: "medical-a70b0.firebaseapp.com",
+            databaseURL: "https://medical-a70b0-default-rtdb.firebaseio.com",
+            projectId: "medical-a70b0",
+            storageBucket: "medical-a70b0.appspot.com",
+            messagingSenderId: "405220474341",
+            appId: "1:405220474341:web:f1e792db059f08c76ac30c",
+            measurementId: "G-JSH167JC8J"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const searchForm = document.getElementById('searchForm');
+        const resultSection = document.getElementById('resultSection');
+        const medicationName = document.getElementById('medicationName');
+        const placement = document.getElementById('placement');
+        const quantity = document.getElementById('quantity');
+        const expiryDate = document.getElementById('expiryDate');
+
+        // Function to handle the search
+        // Function to handle the search
+searchForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const medName = document.getElementById('medName').value;
+
+    // Fetch medication from Firebase by key (medication name)
+    const ref = database.ref(`medical_store/inventory/${medName}`); // Directly search by medication name
+    ref.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            const item = snapshot.val();
+            medicationName.textContent = medName;
+            placement.textContent = item.location;
+            quantity.textContent = item.quantity;
+            expiryDate.textContent = item.expiryDate;
+        } else {
+            // If medication is not found
+            medicationName.textContent = 'Not Found';
+            placement.textContent = 'N/A';
+            quantity.textContent = 'N/A';
+            expiryDate.textContent = 'N/A';
+        }
+        resultSection.style.display = 'block';
+    }).catch(error => {
+        console.error("Error fetching data: ", error);
+        medicationName.textContent = 'Error occurred';
+        placement.textContent = 'N/A';
+        quantity.textContent = 'N/A';
+        expiryDate.textContent = 'N/A';
+        resultSection.style.display = 'block';
+    });
+});
+
+    </script>
+</body>
+</html>
